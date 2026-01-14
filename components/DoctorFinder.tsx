@@ -35,8 +35,17 @@ const DoctorFinder: React.FC<DoctorFinderProps> = ({ symptoms }) => {
         }
       },
       (err) => {
-        setError("Unable to retrieve your location. Please allow location access to find nearby doctors.");
+        let msg = "Unable to retrieve your location.";
+        if (err.code === 1) msg = "Location permission denied. Please allow access.";
+        else if (err.code === 2) msg = "Location unavailable. Please check your connection.";
+        else if (err.code === 3) msg = "Location request timed out.";
+        setError(msg);
         setLoading(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
       }
     );
   };

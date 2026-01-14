@@ -5,14 +5,13 @@ import { AnalysisResult, GroundingSource, DoctorSearchResult, MapSource } from "
 export const analyzeSymptoms = async (
   symptoms: string, 
   imageBase64: string | null = null,
-  language: string = 'English'
+  language: string = 'English',
+  imageMimeType: string = 'image/jpeg'
 ): Promise<AnalysisResult> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
-  // Dynamic model selection based on whether an image is present
-  // gemini-3-pro-image-preview is required for Image + Search tools
-  // gemini-3-flash-preview is best for fast text-only analysis
-  const modelName = imageBase64 ? 'gemini-3-pro-image-preview' : 'gemini-3-flash-preview';
+  // Use gemini-3-flash-preview for both text and multimodal (image) input.
+  const modelName = 'gemini-3-flash-preview';
 
   const prompt = `
     Act as a highly experienced medical information assistant. 
@@ -50,7 +49,7 @@ export const analyzeSymptoms = async (
     requestParts.push({
       inlineData: {
         data: imageBase64,
-        mimeType: 'image/jpeg', // Assuming JPEG for simplicity in this demo context
+        mimeType: imageMimeType, 
       },
     });
   }
@@ -124,11 +123,15 @@ export const analyzeSymptoms = async (
 export const findNearbyDoctors = async (symptoms: string, lat: number, lng: number): Promise<DoctorSearchResult> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+  // Simplified and direct prompt to ensure Google Maps tool usage
   const prompt = `
-    Based on the following symptoms: "${symptoms}", identify the type of medical specialist required.
-    Then, find top-rated doctors, clinics, or hospitals of that type near the provided location.
+    Use Google Maps to find medical help near the location: ${lat}, ${lng}.
     
-    Provide the response as a helpful list of recommendations with a brief reason why this specialist type is appropriate.
+    Context: Patient has "${symptoms}".
+    
+    1. Determine the specialist needed (e.g. Urgent Care, Dermatologist, Cardiologist).
+    2. Search for 3-4 top-rated places of that type nearby.
+    3. Return the results as a list.
   `;
 
   try {
@@ -178,6 +181,6 @@ export const findNearbyDoctors = async (symptoms: string, lat: number, lng: numb
 
   } catch (error) {
     console.error("Gemini Doctor Search Error:", error);
-    throw new Error("Failed to locate nearby doctors. Please ensure location services are enabled.");
+    throw new Error("Failed to locate nearby doctors. Please ensure location services are enabled in your browser.");
   }
 };

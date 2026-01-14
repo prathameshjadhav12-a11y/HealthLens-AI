@@ -20,6 +20,7 @@ const App: React.FC = () => {
   // New States
   const [selectedLanguage, setSelectedLanguage] = useState('English');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [imageMimeType, setImageMimeType] = useState<string>('image/jpeg');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load history from localStorage on mount
@@ -37,11 +38,10 @@ const App: React.FC = () => {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setImageMimeType(file.type); // Capture correct mime type (e.g., image/png)
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result as string;
-        // Remove data URL prefix (e.g. "data:image/jpeg;base64,") for API usage if strictly raw base64 needed, 
-        // but GenAI SDK often handles the data URI format or we parse it.
         // The inlineData expects just the base64 data, so we split.
         const base64Data = base64String.split(',')[1];
         setSelectedImage(base64Data);
@@ -66,8 +66,8 @@ const App: React.FC = () => {
     setResult(null);
 
     try {
-      // Pass image and language to service
-      const data = await analyzeSymptoms(symptoms, selectedImage, selectedLanguage);
+      // Pass image, language, and MIME TYPE to service
+      const data = await analyzeSymptoms(symptoms, selectedImage, selectedLanguage, imageMimeType);
       setResult(data);
       
       const newHistoryItem: HistoryItem = {
@@ -90,6 +90,18 @@ const App: React.FC = () => {
   const clearHistory = () => {
     setHistory([]);
     localStorage.removeItem('healthlens_history');
+  };
+
+  // Helper to generate a useful query string for the doctor finder
+  const getDoctorSearchQuery = () => {
+    if (symptoms.trim()) return symptoms;
+    if (result) {
+      // If only image was used, use the analysis result as context for finding a doctor
+      // Strip markdown characters for a cleaner prompt
+      const cleanContent = result.content.replace(/[*#_]/g, ' ').substring(0, 300);
+      return `Condition matching: ${cleanContent}...`;
+    }
+    return 'General Health Checkup';
   };
 
   return (
@@ -190,7 +202,7 @@ const App: React.FC = () => {
                   <div className="h-16 bg-slate-100 rounded-xl border border-slate-200 flex items-center justify-between px-4">
                     <div className="flex items-center">
                       <div className="w-10 h-10 bg-slate-300 rounded overflow-hidden mr-3">
-                        <img src={`data:image/jpeg;base64,${selectedImage}`} alt="Preview" className="w-full h-full object-cover" />
+                        <img src={`data:${imageMimeType};base64,${selectedImage}`} alt="Preview" className="w-full h-full object-cover" />
                       </div>
                       <span className="text-sm font-medium text-slate-700">Image attached</span>
                     </div>
@@ -265,7 +277,7 @@ const App: React.FC = () => {
         {result && (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
             <ResultView result={result} />
-            <DoctorFinder symptoms={symptoms || (selectedImage ? 'Visual symptoms' : 'General symptoms')} />
+            <DoctorFinder symptoms={getDoctorSearchQuery()} />
           </div>
         )}
 
