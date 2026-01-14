@@ -1,0 +1,95 @@
+
+import React from 'react';
+import { AnalysisResult } from '../types';
+
+interface ResultViewProps {
+  result: AnalysisResult;
+}
+
+const ResultView: React.FC<ResultViewProps> = ({ result }) => {
+  const formatContent = (content: string) => {
+    return content.split('\n').map((line, i) => {
+      if (line.startsWith('# ')) return <h1 key={i} className="text-2xl font-bold text-slate-800 mt-4 mb-2">{line.replace('# ', '')}</h1>;
+      if (line.startsWith('## ')) return <h2 key={i} className="text-xl font-semibold text-slate-800 mt-4 mb-2">{line.replace('## ', '')}</h2>;
+      if (line.startsWith('### ')) return <h3 key={i} className="text-lg font-medium text-slate-800 mt-3 mb-1">{line.replace('### ', '')}</h3>;
+      if (line.trim().startsWith('* ') || line.trim().startsWith('- ')) return <li key={i} className="ml-4 text-slate-600 mb-1">{line.trim().substring(2)}</li>;
+      if (line.trim() === '') return <div key={i} className="h-2" />;
+      return <p key={i} className="text-slate-600 mb-2 leading-relaxed">{line}</p>;
+    });
+  };
+
+  // Determine color based on confidence score
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'text-emerald-600 bg-emerald-50 border-emerald-200';
+    if (score >= 50) return 'text-amber-600 bg-amber-50 border-amber-200';
+    return 'text-red-600 bg-red-50 border-red-200';
+  };
+
+  const getBarColor = (score: number) => {
+    if (score >= 80) return 'bg-emerald-500';
+    if (score >= 50) return 'bg-amber-500';
+    return 'bg-red-500';
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      
+      {/* Header with Confidence Score */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 border-b border-slate-100 pb-4 gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-indigo-900 flex items-center">
+            <svg className="w-6 h-6 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Analysis Report
+          </h2>
+          <span className="text-xs text-slate-400 mt-1 block">Language: {result.language}</span>
+        </div>
+
+        <div className={`flex flex-col items-end px-4 py-2 rounded-lg border ${getScoreColor(result.confidence.score)}`}>
+           <div className="flex items-center space-x-2">
+             <span className="text-xs font-bold uppercase tracking-wider">Confidence Score</span>
+             <span className="text-lg font-black">{result.confidence.score}%</span>
+           </div>
+           <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1 min-w-[100px]">
+              <div className={`h-1.5 rounded-full ${getBarColor(result.confidence.score)}`} style={{ width: `${result.confidence.score}%` }}></div>
+           </div>
+           <span className="text-[10px] font-semibold mt-1 uppercase opacity-80">{result.confidence.label} Confidence</span>
+        </div>
+      </div>
+
+      <div className="prose prose-slate max-w-none mb-8">
+        {formatContent(result.content)}
+      </div>
+
+      {result.sources.length > 0 && (
+        <div className="mt-8 pt-6 border-t border-slate-100">
+          <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Verification Sources</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {result.sources.map((source, idx) => (
+              <a 
+                key={idx} 
+                href={source.uri} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center p-3 bg-slate-50 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-white transition-all group"
+              >
+                <div className="bg-indigo-100 p-2 rounded mr-3 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </div>
+                <div className="overflow-hidden">
+                  <p className="text-sm font-medium text-slate-700 truncate">{source.title}</p>
+                  <p className="text-xs text-slate-400 truncate">{new URL(source.uri).hostname}</p>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ResultView;

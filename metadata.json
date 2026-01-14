@@ -1,0 +1,7 @@
+{
+  "name": "HealthLens AI - Symptom Analyzer",
+  "description": "A sophisticated AI-powered symptom analysis tool that helps users identify potential health conditions based on their symptoms, providing grounded information from medical sources. Note: Not a substitute for professional medical advice.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
